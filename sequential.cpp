@@ -15,21 +15,15 @@ float given_function(float x, float y){
 }
 
 
-float swarm_particle_optimization(std::function<float(float, float)> given_function, int number_of_particles,
-	int number_of_iterations, float minimum_x, float maxmimum_x, float minimum_y, float maxmimum_y, float a, float b,
-	float c){
-
-	float position_of_particles[2][number_of_particles];
-	float best_local_optimum[3][number_of_particles];
-	float best_global_optimum[3][1];
-	best_global_optimum[2][0] = 10000;
-	best_global_optimum[0][0] = 0;
-	best_global_optimum[1][0] = 0;
-	float velocity[2][number_of_particles];
-
-	srand(time(NULL));
+float swarm_particle_optimization(int number_of_particles,int number_of_iterations,float minimum_x,
+		float maxmimum_x,float minimum_y,float maxmimum_y,float a,float b,float c,
+		float **position_of_particles,float **best_local_optimum,float **best_global_optimum,
+		float **velocity){
+	
+	float given_function_with_new_particle;
 
 	//INITIALIZATION:
+
 	//distribute n particles across the search space
 	std::random_device rd;
 	std::default_random_engine generator(rd());
@@ -37,15 +31,12 @@ float swarm_particle_optimization(std::function<float(float, float)> given_funct
   	std::uniform_real_distribution<float> distribution_y(minimum_y, maxmimum_y);
 
   	for (int i = 0; i<number_of_particles; ++i) {
-    	float number_x = fmod(distribution_x(generator) - minimum_x, maxmimum_x);
-    	float number_y = fmod(distribution_y(generator) - minimum_y, maxmimum_y);
+    	float number_x = distribution_x(generator);
+    	float number_y = distribution_y(generator);
     	position_of_particles[0][i] = number_x;
     	position_of_particles[1][i] = number_y;
-    	std::cout<<"x: "<< position_of_particles[0][i]<<"\t\ty: "<<position_of_particles[1][i]<<std::endl;
   	}
 
-	std::cout<<"=============================="<<std::endl;
-  	
 	//evaluate the objective function f for each particle position and assign the computed value as local optimum
 	//and assign to the global optimum the “best” computed local optimum
 	for(int i = 0; i<number_of_particles; i++){
@@ -58,15 +49,17 @@ float swarm_particle_optimization(std::function<float(float, float)> given_funct
 			best_global_optimum[2][0] = best_local_optimum[2][i];
 		}
 	}
-	
+
 	//randomly initialize particle velocities
+	//I choose numbers to be only in range(-5,5)
 	for(int i = 0; i<number_of_particles; i++){
-		velocity[0][i] = rand() % 19 + (-9);
-		velocity[1][i] = rand() % 19 + (-9);
+		velocity[0][i] = rand() % 5 + (-5);
+		velocity[1][i] = rand() % 5 + (-5);
 	}
 
 
 	//ITERATION
+
 	for(int i = 1; i< number_of_iterations; i++){
 		
 		//for each particle, update position
@@ -88,17 +81,21 @@ float swarm_particle_optimization(std::function<float(float, float)> given_funct
 				position_of_particles[1][j] = maxmimum_y;
 			}
 			//re-evaluate local and global optimal
-			float given_function_with_new_particle = given_function(position_of_particles[0][j],position_of_particles[1][j]);
+			given_function_with_new_particle = given_function(position_of_particles[0][j],position_of_particles[1][j]);
 			if(best_local_optimum[2][j] > given_function_with_new_particle){
 				best_local_optimum[0][j] = position_of_particles[0][j];
 				best_local_optimum[1][j] = position_of_particles[1][j];
 				best_local_optimum[2][j] = given_function_with_new_particle;
-				if(best_global_optimum[2][j] > given_function_with_new_particle){
-					best_global_optimum[0][j] = position_of_particles[0][j];
-					best_global_optimum[1][j] = position_of_particles[1][j];
-					best_global_optimum[2][j] = given_function_with_new_particle;
+				if(best_global_optimum[2][0] > best_local_optimum[2][j]){
+					
+					best_global_optimum[0][0] = position_of_particles[0][j];
+					best_global_optimum[1][0] = position_of_particles[1][j];
+					best_global_optimum[2][0] = best_local_optimum[2][j];
 				}
+				
 			}
+			
+			
 		}
 
 		//for each particle, update velocity.
@@ -109,42 +106,95 @@ float swarm_particle_optimization(std::function<float(float, float)> given_funct
 			helping_variable = a * velocity[0][j] + b * ((float) rand()/RAND_MAX) *  (position_of_particles[0][j] - 
 				best_local_optimum[0][j]) + c * ((float) rand()/RAND_MAX) * (position_of_particles[0][j] - best_global_optimum[0][0]);
 
-			if(helping_variable < -19){helping_variable = -19;}
-			if(helping_variable > 19){helping_variable = 19;}	
+			if(helping_variable < -5){helping_variable = -5;}
+			if(helping_variable > 5){helping_variable = 5;}	
 			velocity[0][j] = helping_variable;
 
 			helping_variable = a * velocity[1][j] + b * ((float) rand()/RAND_MAX) * (position_of_particles[1][j] - 
 				best_local_optimum[1][j]) + c * ((float) rand()/RAND_MAX) * (position_of_particles[1][j] - best_global_optimum[1][0]);
-			if(helping_variable < -19){helping_variable = -19;}
-			if(helping_variable > 19){helping_variable = 19;}	
+			if(helping_variable < -5){helping_variable = -5;}
+			if(helping_variable > 5){helping_variable = 5;}	
 			velocity[1][j] = helping_variable;
 		}
-
 	}
 
 	return best_global_optimum[2][0];
-
 }
 
 
 
-int main()
+int main(int argc, char * argv[])
 {
-	int number_of_particles = 100;
-	int number_of_iterations = 1000;
-	int minimum_x = 1;
-	int maxmimum_x = 100;
-	int minimum_y = 2;
-	int maxmimum_y = 50;
-	int result;
+	//parameters with default numbers
+    int number_of_particles = 1000;
+    int number_of_iterations = 100;
+	float minimum_x = 1;
+	float maxmimum_x = 100;
+	float minimum_y = 2;
+	float maxmimum_y = 100;
+	float result;
 	float a = 0.2;
 	float b = 0.1;
 	float c = 0.3;
+	
+	if (argc == 1){}
+
+	//changing the number of parameters
+	else if(argc == 7){
+		number_of_particles = atoi(argv[1]);
+		number_of_iterations = atoi(argv[2]);
+		minimum_x = atoi(argv[3]);
+		maxmimum_x = atoi(argv[4]);
+		minimum_y = atoi(argv[5]);
+		maxmimum_y = atoi(argv[6]);
+	}
+	else if(argc == 10){
+		number_of_particles = atoi(argv[1]);
+		number_of_iterations = atoi(argv[2]);
+		minimum_x = atoi(argv[3]);
+		maxmimum_x = atoi(argv[4]);
+		minimum_y = atoi(argv[5]);
+		maxmimum_y = atoi(argv[6]);
+		a = atoi(argv[7]);
+		b = atoi(argv[8]);
+		c = atoi(argv[9]);
+
+	}
+	else{
+		std::cout<<"The numbers of parameters aren't correct"<<std::endl;
+		return 0;
+	}
+
+	float **position_of_particles = new float*[2];
+	for (int i = 0; i < 2; ++i){
+		position_of_particles[i] = new float[number_of_particles];
+	}
+	float **best_local_optimum = new float*[3];
+	for (int i = 0; i < 3; ++i){
+		best_local_optimum[i] = new float[number_of_particles];
+	}
+	
+	float **best_global_optimum = new float*[3];
+	for (int i = 0; i < 3; ++i)
+	{
+		best_global_optimum[i] = new float[1];
+	}
+	float **velocity = new float*[2];
+	for (int i = 0; i < 2; ++i)
+	{
+		velocity[i] = new float[number_of_particles];
+	}
+
+	//declare best global optimum as a high number
+   	best_global_optimum[2][0] = 10000;
+	best_global_optimum[0][0] = 0;
+	best_global_optimum[1][0] = 0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	result = swarm_particle_optimization(given_function, number_of_particles,
-	 number_of_iterations, minimum_x, maxmimum_x, minimum_y, maxmimum_y, a, b, c);
+	result = swarm_particle_optimization(number_of_particles,number_of_iterations,minimum_x,
+		maxmimum_x,minimum_y,maxmimum_y,a,b,c,position_of_particles,best_local_optimum,best_global_optimum,
+		velocity);
 	
 	auto elapsed = std::chrono::high_resolution_clock::now() - start;
 	auto usec = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
