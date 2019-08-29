@@ -1,5 +1,5 @@
 # Swarm Particle Optimization in Parallel
-I impelemnt swarm particle optimization in sequential and parallel version using c++. There are two versions of parallel one. One of them is implemented with pure C++ without using any especial library. The other one uses fastflow library.
+I implemnt swarm particle optimization in sequential and parallel version using c++. There are two versions of parallel one. One of them is implemented with pure C++ without using any especial library. The other one uses fastflow library.
 ## What is Swarm Particle Optimization
 The target is to develop an application finding the minimum of a function in a given interval using swarm
 particle optimization. The Swarm Particle Optimization (SPO) uses particles to explore the state
@@ -25,4 +25,5 @@ For running the program we have three options.
 2. Give 7 parameters to the program. Which in order they are: number of threads, number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension, maximum for dimension y. And for a,b and c the program will use the default numbers mentioned above.  
 3. Give 10 parameters to the program: number of threads, number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension y, maximum for dimension y, a, b and c.
 ### fastflow version
-For compiling the program we need to use -pthread and -I /the location of fast flow cloned from GitHub and we need to use -std=c++17. For running the program, it is the same as above. 
+For compiling the program we need to use -pthread and -I /the location of fast flow cloned from GitHub and we need to use -std=c++17. 
+For running the program, it is the same as above. 
