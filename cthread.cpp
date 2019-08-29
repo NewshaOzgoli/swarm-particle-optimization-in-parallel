@@ -10,14 +10,15 @@
 #include <vector>
 #include <atomic>
 #include <pthread.h> 
+#include <mutex>
 
 using namespace std;
 
 
 //parameters with default numbers
 	int number_of_threads;
-    int number_of_particles = 1000;
-    int number_of_iterations = 100;
+    int number_of_particles = 10000;
+    int number_of_iterations = 1000;
 	float minimum_x = 1;
 	float maxmimum_x = 100;
 	float minimum_y = 2;
@@ -26,7 +27,10 @@ using namespace std;
 	float a = 0.2;
 	float b = 0.1;
 	float c = 0.3;
-	atomic<float> best_global_optimum[3][1];
+	float best_global_optimum[3][1];
+
+	std::mutex mtx;
+	pthread_barrier_t mybarrier;
 
 //for dividing particles between threads
 typedef struct{
@@ -48,9 +52,9 @@ float rand_function(const float & min, const float & max) {
     return distribution(*generator);
 }
 
-void swarm_particle_optimization_initialization(RANGE range,float **position_of_particles,
+void swarm_particle_optimization(RANGE range,float **position_of_particles,
 	float **best_local_optimum,float **velocity){
-
+	
 	//INITIALIZATION:
 
 	//distribute n particles across the search space
@@ -60,6 +64,12 @@ void swarm_particle_optimization_initialization(RANGE range,float **position_of_
 
   	}
   	
+  	//randomly initialize particle velocities
+	for(int i = range.start; i<range.end; ++i){
+		velocity[0][i] = rand_function(-5,5);
+		velocity[1][i] = rand_function(-5,5);
+	}
+
 	//evaluate the objective function f for each particle position and assign the computed value as local optimum
 	//and assign to the global optimum the “best” computed local optimum
 	for(int i = range.start; i<range.end; ++i){
@@ -67,77 +77,72 @@ void swarm_particle_optimization_initialization(RANGE range,float **position_of_
 		best_local_optimum[1][i] = position_of_particles[1][i];
 		best_local_optimum[2][i] = given_function(best_local_optimum[0][i], best_local_optimum[1][i]);
 		if(best_local_optimum[2][i] < best_global_optimum[2][0]){
+			std::lock_guard<std::mutex> lock(mtx);
 			best_global_optimum[0][0] = best_local_optimum[0][i];
 			best_global_optimum[1][0] = best_local_optimum[1][i];
 			best_global_optimum[2][0] = best_local_optimum[2][i];
 		}
 	}
-	
-	//randomly initialize particle velocities
-	for(int i = range.start; i<range.end; ++i){
-		velocity[0][i] = rand_function(-5,5);
-		velocity[1][i] = rand_function(-5,5);
-	}
-	
+	pthread_barrier_wait(&mybarrier);
 
-}
-
-void swarm_particle_optimization_iteration(RANGE range,float **position_of_particles,
-	float **best_local_optimum,float **velocity){
-	//for avoiding the iteration using the wrong global oprimum
-	float old_global_optimum = best_global_optimum[2][0];
 	//ITERATION
-		
-	//for each particle, update position
-	//Pos(t+1) = Pos(t) + V(t+1) 
-	for(int j = range.start; j<range.end; ++j){
-		position_of_particles[0][j] = position_of_particles[0][j] + velocity[0][j];
-		position_of_particles[1][j] = position_of_particles[1][j] + velocity[1][j];
-		//what happend if particle is out of range
-		if(position_of_particles[0][j] < minimum_x){
-			position_of_particles[0][j] = minimum_x;
-		}
-		if(position_of_particles[0][j] > maxmimum_x){
-			position_of_particles[0][j] = maxmimum_x;
-		}
-		if(position_of_particles[1][j] < minimum_y){
-			position_of_particles[1][j] = minimum_y;			
-		}
-		if(position_of_particles[1][j] > maxmimum_y){
-			position_of_particles[1][j] = maxmimum_y;
-		}
-		//re-evaluate local and global optimal
-		float given_function_with_new_particle = given_function(position_of_particles[0][j],position_of_particles[1][j]);
+	for(int z = 1; z< number_of_iterations; z++){
+		//for avoiding the iteration using the wrong global oprimum
+		float old_global_optimum = best_global_optimum[2][0];
+			
+		//for each particle, update position
+		//Pos(t+1) = Pos(t) + V(t+1) 
+		for(int j = range.start; j<range.end; ++j){
+			position_of_particles[0][j] = position_of_particles[0][j] + velocity[0][j];
+			position_of_particles[1][j] = position_of_particles[1][j] + velocity[1][j];
+			//what happend if particle is out of range
+			if(position_of_particles[0][j] < minimum_x){
+				position_of_particles[0][j] = minimum_x;
+			}
+			if(position_of_particles[0][j] > maxmimum_x){
+				position_of_particles[0][j] = maxmimum_x;
+			}
+			if(position_of_particles[1][j] < minimum_y){
+				position_of_particles[1][j] = minimum_y;			
+			}
+			if(position_of_particles[1][j] > maxmimum_y){
+				position_of_particles[1][j] = maxmimum_y;
+			}
+			//re-evaluate local and global optimal
+			float given_function_with_new_particle = given_function(position_of_particles[0][j],position_of_particles[1][j]);
 
-		if(best_local_optimum[2][j] > given_function_with_new_particle){
-			best_local_optimum[0][j] = position_of_particles[0][j];
-			best_local_optimum[1][j] = position_of_particles[1][j];
-			best_local_optimum[2][j] = given_function_with_new_particle;
-			if(old_global_optimum > given_function_with_new_particle){
-				best_global_optimum[0][0] = position_of_particles[0][j];
-				best_global_optimum[1][0] = position_of_particles[1][j];
-				best_global_optimum[2][0] = given_function_with_new_particle;
+			if(best_local_optimum[2][j] > given_function_with_new_particle){
+				best_local_optimum[0][j] = position_of_particles[0][j];
+				best_local_optimum[1][j] = position_of_particles[1][j];
+				best_local_optimum[2][j] = given_function_with_new_particle;
+				if(old_global_optimum > given_function_with_new_particle){
+					std::lock_guard<std::mutex> lock(mtx);
+					best_global_optimum[0][0] = position_of_particles[0][j];
+					best_global_optimum[1][0] = position_of_particles[1][j];
+					best_global_optimum[2][0] = given_function_with_new_particle;
+				}
 			}
 		}
-	}
 
-	//for each particle, update velocity.
-	//V(t+1) = a V(t) + b R 1 (Pos(t) - Pos(localOpt)) + c R 2 (Pos(t) – Pos(globalOpt))
-	//srand( (unsigned)time( NULL ) );
-	for(int j = range.start; j<range.end; ++j){
-		float helping_variable;
-		helping_variable = a * velocity[0][j] + b * rand_function(0,1) *  (position_of_particles[0][j] - 
-			best_local_optimum[0][j]) + c * rand_function(0,1) * (position_of_particles[0][j] - old_global_optimum);
+		//for each particle, update velocity.
+		//V(t+1) = a V(t) + b R 1 (Pos(t) - Pos(localOpt)) + c R 2 (Pos(t) – Pos(globalOpt))
+	
+		for(int j = range.start; j<range.end; ++j){
+			float helping_variable;
+			helping_variable = a * velocity[0][j] + b * rand_function(0,1) *  (position_of_particles[0][j] - 
+				best_local_optimum[0][j]) + c * rand_function(0,1) * (position_of_particles[0][j] - old_global_optimum);
 
-		if(helping_variable < -5){helping_variable = -5;}
-		if(helping_variable > 5){helping_variable = 5;}	
-		velocity[0][j] = helping_variable;
+			if(helping_variable < -5){helping_variable = -5;}
+			if(helping_variable > 5){helping_variable = 5;}	
+			velocity[0][j] = helping_variable;
 
-		helping_variable = a * velocity[1][j] + b * rand_function(0,1) * (position_of_particles[1][j] - 
-			best_local_optimum[1][j]) + c * rand_function(0,1) * (position_of_particles[1][j] - old_global_optimum);
-		if(helping_variable < -5){helping_variable = -5;}
-		if(helping_variable > 5){helping_variable = 5;}	
-		velocity[1][j] = helping_variable;
+			helping_variable = a * velocity[1][j] + b * rand_function(0,1) * (position_of_particles[1][j] - 
+				best_local_optimum[1][j]) + c * rand_function(0,1) * (position_of_particles[1][j] - old_global_optimum);
+			if(helping_variable < -5){helping_variable = -5;}
+			if(helping_variable > 5){helping_variable = 5;}	
+			velocity[1][j] = helping_variable;
+		}
+		pthread_barrier_wait(&mybarrier);
 	}
 }
 
@@ -197,39 +202,29 @@ int main(int argc, char * argv[])
 	best_global_optimum[0][0] = 0;
 	best_global_optimum[1][0] = 0;
 
+	pthread_barrier_init(&mybarrier, NULL, number_of_threads);
+
 	vector<RANGE> ranges(number_of_threads);
 	int delta{number_of_particles/number_of_threads};
-	vector<thread> tids;
 	vector<thread> tid;
-
-	auto start = std::chrono::high_resolution_clock::now();
 
 	//assign particles to each thread
 	for (int i = 0; i < number_of_threads; ++i){
 		ranges[i].start = i * delta;
 		ranges[i].end = (i != (number_of_threads-1) ? (i+1)*delta : number_of_particles);
 	}
+
+	auto start = std::chrono::high_resolution_clock::now();
 	
-	//Do initialization in parallel
+	
 	for (int i = 0; i < number_of_threads; ++i){
-		tids.push_back(thread(swarm_particle_optimization_initialization,ranges[i],
-			position_of_particles,best_local_optimum,velocity));
-	}
-	for (thread& t: tids){
+			tid.push_back(thread(swarm_particle_optimization,ranges[i],
+				position_of_particles,best_local_optimum,velocity));
+		}
+	for (thread& t: tid){
 		t.join();
 	}
-
-	//Do iterations in parallel
-	for(int j = 1; j< number_of_iterations; j++){
-		for (int i = 0; i < number_of_threads; ++i){
-				tid.push_back(thread(swarm_particle_optimization_iteration,ranges[i],
-					position_of_particles,best_local_optimum,velocity));
-			}
-		for (thread& t: tid){
-			t.join();
-		}
-		tid.clear();
-	}
+	
 	auto elapsed = std::chrono::high_resolution_clock::now() - start;
 	auto usec = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
 	std::cout<<"time: "<<usec<<" microseconds"<<std::endl;
