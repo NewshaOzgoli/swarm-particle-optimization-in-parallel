@@ -1,4 +1,5 @@
 # Swarm Particle Optimization in Parallel
+I impelemnt swarm particle optimization in sequential and parallel version using c++. There are two versions of parallel one. One of them is implemented with pure C++ without using any especial library. The other one uses fastflow library.
 ## What is Swarm Particle Optimization
 The target is to develop an application finding the minimum of a function in a given interval using swarm
 particle optimization. The Swarm Particle Optimization (SPO) uses particles to explore the state
