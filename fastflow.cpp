@@ -35,8 +35,8 @@ int main(int argc, char * argv[])
 	size_t nworkers;
 	
 	//parameters with default numbers
-	int number_of_particles = 1000;
-	int number_of_iterations = 100;
+	int number_of_particles = 10000;
+	int number_of_iterations = 1000;
 	float minimum_x = 1;
 	float maxmimum_x = 100;
 	float minimum_y = 2;
