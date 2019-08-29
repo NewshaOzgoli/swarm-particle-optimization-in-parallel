@@ -13,17 +13,17 @@ Iteration phase is the same as the initialization phase in which I split particl
 We do the iteration phase as much as the user wants but the point here is that after each iteration, before starting a new iteration we need a barrier which waits for all the threads to finish that specific iteration then we can start a new iteration. Another detail worth mentioning is that before starting the iteration phase we have to make sure that the initialization phase has been finished.
  
 ## Run the Code
-### sequential version
+### Sequential Version
 For running the program we have three options:
 1. Give no parameters to the program. In this situation the program will run with default parameters which are: number of particles = 10000, number of iterations = 1000, minimum for dimension x = 1, maximum for dimension x = 100, minimum for dimension y = 2, maximum for dimension y = 100, ‘a’ in the formula for changing the velocity = 0.2, ‘b’ in the formula for changing the velocity = 0.1, ‘c’ in the formula for changing the velocity = 0.3
 2. Give 6 parameters to the program respectively indicating: number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension, maximum for dimension y. And for a,b and c the program will use the default numbers mentioned before.
 3. Give 9 parameters to program Which in order they are: number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension y, maximum for dimension y, a, b and c.	
-### pure c++ version
+### Pure C++ Version
 When we want to compile the program we need to use -pthread.
 For running the program we have three options.
 1. Give one parameter to the program which is the number of threads. So when we want to run the program for example with 2 threads we have to write something like this: ./name.out  2. In this situation the program will run with 2 threads and with default parameters which are the same as above.
 2. Give 7 parameters to the program. Which in order they are: number of threads, number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension, maximum for dimension y. And for a,b and c the program will use the default numbers mentioned above.  
 3. Give 10 parameters to the program: number of threads, number of particles, number of iterations, minimum for dimension, maximum for dimension x, minimum for dimension y, maximum for dimension y, a, b and c.
-### fastflow version
+### Fastflow Version
 For compiling the program we need to use -pthread and -I /the location of fast flow cloned from GitHub and we need to use -std=c++17. 
 For running the program, it is the same as above. 
